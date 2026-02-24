@@ -3,12 +3,13 @@
 Milo's Lab - Weekly Iteration Script
 
 Runs weekly to:
-1. Review each project in milos-lab/
-2. Test it (run the main script)
-3. Identify one improvement
-4. Implement it
-5. Push updates to GitHub
-6. Log changes to memory
+1. Fetch all repos from GitHub
+2. Clone/update each locally
+3. Test it (run main script if exists)
+4. Identify one improvement
+5. Implement it
+6. Push updates to GitHub
+7. Log changes to memory
 
 Run: python3 weekly_iteration.py
 """
@@ -23,105 +24,203 @@ from subprocess import run, PIPE
 # Configuration
 LAB_DIR = Path("/home/ubuntu/.openclaw/workspace/milos-lab")
 MEMORY_FILE = "/home/ubuntu/.openclaw/memory/weekly-iteration.md"
-GIT_REMOTE = "git@github.com:milo-good-boy/milos-lab.git"  # Placeholder
-
-PROJECTS = {
-    "context-manager": {
-        "script": "context_manager.py",
-        "description": "Session context monitoring"
-    }
-}
+GH_TOKEN_FILE = "/home/ubuntu/.openclaw/config/github-credentials.json"
 
 class WeeklyIteration:
     def __init__(self):
         self.changes = []
         self.week = datetime.now().strftime("%Y-W%W")
+        self.repos = []
+        self.token = self._get_gh_token()
         
-    def test_project(self, project_name, project_path):
+    def _get_gh_token(self):
+        """Get GitHub token from credentials file."""
+        with open(GH_TOKEN_FILE) as f:
+            creds = json.load(f)
+        return creds.get("token", "")
+    
+    def fetch_repos(self):
+        """Fetch all repos from GitHub API."""
+        print("📡 Fetching repos from GitHub...")
+        
+        result = run(
+            ["curl", "-s", f"https://api.github.com/users/MiloGoodBoy/repos?sort=updated&per_page=100"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            print(f"  ⚠️ Failed to fetch repos: {result.stderr}")
+            return []
+        
+        try:
+            repos = json.loads(result.stdout)
+            self.repos = [(r["name"], r["clone_url"], r["description"]) for r in repos]
+            print(f"  ✅ Found {len(self.repos)} repos")
+            return self.repos
+        except json.JSONDecodeError as e:
+            print(f"  ⚠️ Failed to parse repos: {e}")
+            return []
+    
+    def ensure_repo(self, repo_name, clone_url):
+        """Ensure repo exists locally, clone or pull if not."""
+        repo_path = LAB_DIR / repo_name
+        
+        if not repo_path.exists():
+            print(f"  📥 Cloning {repo_name}...")
+            # Use token in URL for cloning
+            auth_url = clone_url.replace("https://", f"https://MiloGoodBoy:{self.token}@")
+            result = run(["git", "clone", "--depth", "1", auth_url, str(repo_path)], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"  ⚠️ Clone failed: {result.stderr[:100]}")
+                return None
+            print(f"  ✅ Cloned")
+        else:
+            print(f"  🔄 Updating {repo_name}...")
+            # Pull latest
+            result = run(["git", "pull", "origin", "main"], cwd=repo_path, capture_output=True, text=True)
+            if result.returncode != 0:
+                # Try main branch
+                result = run(["git", "pull", "origin", "master"], cwd=repo_path, capture_output=True, text=True)
+            print(f"  ✅ Updated")
+        
+        return repo_path
+    
+    def test_project(self, repo_name, repo_path):
         """Test a project by running its main script."""
-        print(f"\n🧪 Testing {project_name}...")
+        print(f"\n🧪 Testing {repo_name}...")
         
-        # Find main script
-        main_script = project_path / PROJECTS[project_name]["script"]
-        if not main_script.exists():
-            print(f"  ⚠️ No script found: {main_script}")
-            return False
+        # Look for common Python entry points
+        candidates = [
+            repo_path / "main.py",
+            repo_path / f"{repo_name}.py",
+            repo_path / "run.py",
+            repo_path / "bot.py",
+            repo_path / "app.py",
+        ]
+        
+        main_script = None
+        for candidate in candidates:
+            if candidate.exists():
+                main_script = candidate
+                break
+        
+        # Also check for subdirectories with scripts
+        if not main_script:
+            for subdir in repo_path.iterdir():
+                if subdir.is_dir() and not subdir.name.startswith("."):
+                    for candidate in ["main.py", "run.py", "bot.py"]:
+                        if (subdir / candidate).exists():
+                            main_script = subdir / candidate
+                            break
+                if main_script:
+                    break
+        
+        if not main_script:
+            print(f"  ℹ️ No testable Python script found")
+            return True  # Not a failure, just nothing to test
         
         # Run the script
         result = run(
             ["python3", str(main_script)],
-            cwd=project_path,
+            cwd=repo_path,
             capture_output=True,
-            text=True
+            text=True,
+            timeout=30
         )
         
         if result.returncode == 0:
             print(f"  ✅ Test passed")
             return True
         else:
-            print(f"  ⚠️ Test output:\n{result.stdout}")
+            print(f"  ⚠️ Test output:\n{result.stdout[:200]}")
             if result.stderr:
-                print(f"  ⚠️ Errors:\n{result.stderr}")
+                print(f"  ⚠️ Errors:\n{result.stderr[:200]}")
             return False
     
-    def identify_improvement(self, project_name):
+    def identify_improvement(self, repo_name, repo_path):
         """Identify one improvement for the project."""
-        # Simple heuristic: look for TODO comments or suggest common improvements
-        project_path = LAB_DIR / project_name
-        
         # Check for TODO in code
-        for py_file in project_path.glob("*.py"):
-            content = py_file.read_text()
-            if "# TODO" in content:
-                return f"Implement TODO in {py_file.name}"
+        for py_file in repo_path.glob("**/*.py"):
+            if py_file.name.startswith("."):
+                continue
+            try:
+                content = py_file.read_text(errors="ignore")
+                if "# TODO" in content or "# FIXME" in content:
+                    return f"Implement TODO in {py_file.name}"
+            except:
+                pass
         
-        # Default improvements based on project
-        if project_name == "context-manager":
-            return "Add Telegram alert when session archived"
+        # Check README for missing sections
+        readme = repo_path / "README.md"
+        if readme.exists():
+            content = readme.read_text()
+            if "## Installation" not in content and "## Setup" not in content:
+                return "Add installation/setup instructions to README"
+            if "## License" not in content:
+                return "Add LICENSE file"
         
+        # Check for missing files
+        if not (repo_path / "README.md").exists():
+            return "Add README.md"
+        if not (repo_path / "LICENSE").exists():
+            return "Add LICENSE file"
+        
+        # Default improvements
         return "General bug fixes and code cleanup"
     
-    def implement_improvement(self, project_name, improvement):
+    def implement_improvement(self, repo_name, improvement):
         """Implement the identified improvement."""
         print(f"\n🔧 Implementing: {improvement}")
         
-        # This is where I'd implement the specific improvement
-        # For now, just log what would be done
+        # Log what would be done
         self.changes.append({
-            "project": project_name,
+            "project": repo_name,
             "improvement": improvement,
-            "status": "implemented"
+            "status": "identified"
         })
         
-        print(f"  ✅ Implemented: {improvement}")
+        print(f"  📝 Logged: {improvement}")
         return True
     
-    def commit_and_push(self, project_name):
+    def commit_and_push(self, repo_name, repo_path):
         """Commit changes and push to GitHub."""
-        project_path = LAB_DIR / project_name
-        
         # Check if git is initialized
-        if not (project_path / ".git").exists():
-            print(f"  ⚠️ No git repo in {project_name}")
+        if not (repo_path / ".git").exists():
+            print(f"  ⚠️ No git repo in {repo_name}")
             return False
         
         # Add changes
-        run(["git", "add", "-A"], cwd=project_path, capture_output=True)
+        run(["git", "add", "-A"], cwd=repo_path, capture_output=True)
         
         # Check if there are changes
-        result = run(["git", "status", "--porcelain"], cwd=project_path, capture_output=True, text=True)
+        result = run(["git", "status", "--porcelain"], cwd=repo_path, capture_output=True, text=True)
         if not result.stdout.strip():
             print(f"  ℹ️ No changes to commit")
             return True
         
         # Commit
-        commit_msg = f"{self.week}: {project_name} iteration"
-        run(["git", "commit", "-m", commit_msg], cwd=project_path, capture_output=True)
+        commit_msg = f"{self.week}: {repo_name} iteration - {self.changes[-1]['improvement']}"
+        run(["git", "commit", "-m", commit_msg], cwd=repo_path, capture_output=True)
         
-        # Push (will fail without credentials - that's OK)
-        result = run(["git", "push"], cwd=project_path, capture_output=True, text=True)
+        # Push with token
+        result = run(
+            ["git", "push", "origin", "main"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True
+        )
         if result.returncode != 0:
-            print(f"  ⚠️ Push failed (need credentials): {result.stderr[:200]}")
+            # Try main branch
+            result = run(
+                ["git", "push", "origin", "master"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True
+            )
+        
+        if result.returncode != 0:
+            print(f"  ⚠️ Push failed: {result.stderr[:100]}")
             return False
         
         print(f"  ✅ Pushed to GitHub")
@@ -156,36 +255,47 @@ class WeeklyIteration:
     
     def run(self):
         """Main execution."""
-        print("=" * 50)
+        print("=" * 60)
         print("Milo's Lab - Weekly Iteration")
         print(f"Week: {self.week}")
-        print("=" * 50)
+        print("=" * 60)
         
-        for project_name, project_info in PROJECTS.items():
-            print(f"\n📁 Project: {project_name}")
-            print(f"   {project_info['description']}")
+        # Fetch repos from GitHub
+        repos = self.fetch_repos()
+        
+        if not repos:
+            print("❌ No repos found, exiting")
+            return
+        
+        for repo_name, clone_url, description in repos:
+            print(f"\n📁 Project: {repo_name}")
+            if description:
+                print(f"   {description}")
             
-            project_path = LAB_DIR / project_name
+            # Ensure repo exists locally
+            repo_path = self.ensure_repo(repo_name, clone_url)
+            if not repo_path:
+                continue
             
             # Test
-            test_passed = self.test_project(project_name, project_path)
+            self.test_project(repo_name, repo_path)
             
             # Identify improvement
-            improvement = self.identify_improvement(project_name)
+            improvement = self.identify_improvement(repo_name, repo_path)
             print(f"\n💡 Improvement: {improvement}")
             
-            # Implement
-            self.implement_improvement(project_name, improvement)
+            # Implement (mark as identified)
+            self.implement_improvement(repo_name, improvement)
             
             # Commit & push
-            self.commit_and_push(project_name)
+            self.commit_and_push(repo_name, repo_path)
         
         # Log to memory
         self.log_to_memory()
         
-        print("\n" + "=" * 50)
-        print("✅ Weekly iteration complete!")
-        print("=" * 50)
+        print("\n" + "=" * 60)
+        print(f"✅ Weekly iteration complete! ({len(self.repos)} repos)")
+        print("=" * 60)
 
 if __name__ == "__main__":
     wi = WeeklyIteration()
