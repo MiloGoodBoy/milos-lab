@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-03-01T09:05:09.363197",
+  "regime": "STABILIZING",
+  "confidence": 48,
+  "direction": "Range",
+  "lt_sentiment": "60%",
+  "lt_score": 60,
+  "current_price": {
+    "BTC": "67,000.00",
+    "ETH": "2,008.89",
+    "SOL": "86.25"
+  },
+  "support": {
+    "BTC": "$63,650",
+    "ETH": "$1,908",
+    "SOL": "$82"
+  },
+  "resistance": {
+    "BTC": "$70,350",
+    "ETH": "$2,109",
+    "SOL": "$91"
+  },
+  "flags": [
+    "\ud83d\udcca - \ud83d\udd34 institutional (1.00) diverges from price_expectations (0.50)"
+  ],
+  "llm_summary": "**STABILIZING** | 48% confidence",
+  "raw_hourly_signals": {
+    "BTC": 48,
+    "ETH": 48,
+    "SOL": 48
+  }
+}

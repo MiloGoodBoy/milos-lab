@@ -1,0 +1,184 @@
+{
+  "timestamp": "2026-03-01T09:03:31.476295",
+  "regime": "STABILIZING",
+  "trading_regime": "CONSOLIDATION",
+  "confidence": 48,
+  "prices": {
+    "BITCOIN": {
+      "price": 67000,
+      "change_24h": 2.8541964450984696,
+      "volume_24h": 43682335503.72336
+    },
+    "ETHEREUM": {
+      "price": 2008.89,
+      "change_24h": 5.874214948437648,
+      "volume_24h": 22604713885.878544
+    },
+    "SOLANA": {
+      "price": 86.25,
+      "change_24h": 6.992433026445739,
+      "volume_24h": 4767306920.500505
+    }
+  },
+  "hourly": {
+    "BTC": 48.5,
+    "ETH": 48.5,
+    "SOL": 48.0
+  },
+  "sr_levels": {
+    "BITCOIN": {
+      "current": 67000,
+      "change_24h": 2.8541964450984696,
+      "support": [
+        63650.0,
+        60300.0,
+        56950.0
+      ],
+      "resistance": [
+        70350.0,
+        73700.0,
+        77050.0
+      ],
+      "trend": "bullish"
+    },
+    "ETHEREUM": {
+      "current": 2008.89,
+      "change_24h": 5.874214948437648,
+      "support": [
+        1908.45,
+        1808.0,
+        1707.56
+      ],
+      "resistance": [
+        2109.33,
+        2209.78,
+        2310.22
+      ],
+      "trend": "bullish"
+    },
+    "SOLANA": {
+      "current": 86.25,
+      "change_24h": 6.992433026445739,
+      "support": [
+        81.94,
+        77.62,
+        73.31
+      ],
+      "resistance": [
+        90.56,
+        94.88,
+        99.19
+      ],
+      "trend": "bullish"
+    }
+  },
+  "checklist": [],
+  "accuracy": {
+    "accuracy": 0.3894736842105263,
+    "total": 95,
+    "by_regime": {
+      "RECOVERY": {
+        "correct": 2,
+        "total": 2,
+        "accuracy": 100.0
+      },
+      "STABILIZING": {
+        "correct": 5,
+        "total": 56,
+        "accuracy": 8.928571428571429
+      },
+      "RENEWED_DOWNSIDE": {
+        "correct": 1,
+        "total": 1,
+        "accuracy": 100.0
+      },
+      "STRONG_BULLISH": {
+        "correct": 0,
+        "total": 2,
+        "accuracy": 0.0
+      },
+      "BULLISH_RECOVERY": {
+        "correct": 0,
+        "total": 1,
+        "accuracy": 0.0
+      },
+      "BULLISH_CONSOLIDATION": {
+        "correct": 0,
+        "total": 1,
+        "accuracy": 0.0
+      },
+      "BEARISH_PULLBACK": {
+        "correct": 1,
+        "total": 2,
+        "accuracy": 50.0
+      },
+      "REVERSAL": {
+        "correct": 0,
+        "total": 1,
+        "accuracy": 0.0
+      },
+      "DEFENSIVE": {
+        "correct": 28,
+        "total": 29,
+        "accuracy": 96.55172413793103
+      }
+    },
+    "recent": []
+  },
+  "lt_sentiment": {
+    "classification": "cautiously_bullish",
+    "score": 0.6,
+    "trend": "stable",
+    "interpretation": "Lean bullish with some mixed signals across tiers. Sentiment is holding steady. Note: 1 divergence(s) detected across tiers.",
+    "tiers": {
+      "price": 0.5,
+      "macro": 0.5,
+      "institutional": 1.0,
+      "ecosystem": 0.5
+    },
+    "emergency_cut_prob": 0.0,
+    "mstr_sells_prob": 0.0,
+    "divergences": [
+      {
+        "type": "tier_divergence",
+        "description": "institutional (1.00) diverges from price_expectations (0.50)",
+        "severity": "high",
+        "tiers": [
+          "institutional",
+          "price_expectations"
+        ]
+      }
+    ],
+    "btc_implied_range": {
+      "low": null,
+      "high": null,
+      "mode": null
+    },
+    "eth_implied_range": {
+      "low": null,
+      "high": null,
+      "mode": null
+    }
+  },
+  "lt_overrides": {
+    "active": false,
+    "conditions_checked": [
+      {
+        "signal": "emergency_fed_cut",
+        "method": "delta",
+        "current_prob": 0.0,
+        "baseline_prob": null,
+        "delta": null,
+        "threshold": "10% delta in 24h or 35% absolute",
+        "triggered": false,
+        "reason": "no_history"
+      },
+      {
+        "signal": "mstr_btc_liquidation",
+        "value": 0.0,
+        "threshold": 0.1,
+        "triggered": false
+      }
+    ]
+  }
+}
