@@ -12,3 +12,10 @@ __pycache__/
 # Environment
 .env
 .venv
+
+# OpenClaw workspace files
+.openclaw/
+memory/
+*.md
+risk-analyst-reports/
+scripts/
